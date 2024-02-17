@@ -1,0 +1,167 @@
+---
+title: "distoredMap"
+author: "Boyang Li"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+# 加载所需的包
+
+library(ggplot2)
+library(glue)
+library(hrbrthemes)
+library(rgdal)
+library(albersusa)
+library(sf)
+library(tidyverse)
+library(hrbrthemes)
+library(ggtext)
+library(rcartocolor) # 可视化颜色包
+library(cartogram)
+```
+
+```{r}
+# 定义一个变量来保存属性名
+attribute_var <- "Join_Count"
+
+# 数据读取和转换
+shp_data <- readOGR(dsn = "../data/shp/nanshan_value/nanshan_value.shp")
+shp_data_sf <- st_as_sf(shp_data)
+shp_data_transformed <- st_transform(shp_data_sf, 32650)
+
+# 数据转化处理
+shp_data_transformed[[attribute_var]] <- as.numeric(shp_data_transformed[[attribute_var]])
+sz_cartogram <- cartogram_cont(shp_data_transformed, attribute_var, itermax=5)
+
+# 提取属性列的最小和最大值
+min_val <- min(shp_data_transformed[[attribute_var]], na.rm = TRUE)
+max_val <- max(shp_data_transformed[[attribute_var]], na.rm = TRUE)
+
+# 使用 'pretty()' 函数来生成断点
+breaks_val <- pretty(shp_data_transformed[[attribute_var]], n = 5)
+```
+
+```{r}
+#可视化绘制
+options(scipen=10000)
+
+map_cont <- ggplot()+
+  geom_sf(data = sz_cartogram, aes(geometry = geometry, fill = get(attribute_var, sz_cartogram)),
+          color = "transparent", size = 1) +
+  rcartocolor::scale_fill_carto_c(palette = "BluYl", name = "Cognitive intensity of location",
+                                  direction = -1, 
+                                  guide = F,
+                                  limits = c(min_val, max_val),
+                                  breaks = breaks_val,
+                                  labels = glue::glue("{breaks_val} k"))+
+  guides(fill = guide_colorbar(barheight = unit(2.3, units = "mm"),  
+                               barwidth = unit(100, units = "mm"),
+                               direction = "horizontal",
+                               ticks.colour = "grey40",
+                               title.position = "left",
+                               label.position = "bottom",
+                               title.vjust = 1)) +
+
+ #hrbrthemes::theme_ipsum(base_family = "Roboto Condensed") +
+ theme(
+       text = element_text(family = "Roboto Condensed"),
+       axis.ticks = element_blank(),
+       axis.text = element_blank(),
+       panel.grid.major = element_blank(),
+       panel.grid.minor = element_blank(),
+       panel.background = element_rect(fill = "white"),
+       plot.background = element_rect(fill = "white"),
+       plot.title = element_markdown(hjust = 0.5,vjust = .5,color = "white",face = "bold",
+                                     size = 24, margin = margin(t = 1, b = 12)),
+       plot.subtitle = element_markdown(hjust = 0,vjust = 1,size=15,color = "white"),
+       plot.caption = element_markdown(face = 'bold',size = 12,hjust = 1,color = "white"),
+       legend.position = "bottom",
+       legend.title = element_text( color = "grey60", face = "bold", size = 14),
+       legend.text = element_text(color = "grey60", size = 10),
+       legend.background = element_rect(fill = "white")
+  )
+
+# ggsave("../img/map_cont.png", map_cont, width = 10, height = 10, dpi = 500)
+
+map_cont
+```
+
+# 距离变形的认知地图
+
+```{r}
+# 定义一个变量来保存属性名
+attribute_var <- "ds"
+
+# 数据读取和转换
+shp_data <- readOGR(dsn = "../data/cmap/cmap_distance.shp")
+shp_data_sf <- st_as_sf(shp_data)
+shp_data_transformed <- st_transform(shp_data_sf, 32650)
+
+# 数据转化处理
+shp_data_transformed[[attribute_var]] <- as.numeric(shp_data_transformed[[attribute_var]])
+
+#min_val <- min(shp_data_transformed[[attribute_var]], na.rm = TRUE)
+#shp_data_transformed[[attribute_var]] <- shp_data_transformed[[attribute_var]] - min_val + 1
+# 应用平方变换来增加属性值的范围和差异
+#shp_data_transformed[[attribute_var]] <- (shp_data_transformed[[attribute_var]])^2
+
+sz_dist_cartogram <- cartogram_cont(shp_data_transformed, attribute_var, itermax=5)
+
+# 提取属性列的最小和最大值
+min_val <- min(shp_data_transformed[[attribute_var]], na.rm = TRUE)
+max_val <- max(shp_data_transformed[[attribute_var]], na.rm = TRUE)
+
+# 使用 'pretty()' 函数来生成断点
+breaks_val <- pretty(shp_data_transformed[[attribute_var]], n = 5)
+```
+
+```{r}
+#可视化绘制
+options(scipen=10000)
+
+map_cont <- ggplot()+
+  geom_sf(data = sz_dist_cartogram, aes(geometry = geometry, fill = get(attribute_var, sz_dist_cartogram)),
+          color = "transparent", size = 1) +
+  rcartocolor::scale_fill_carto_c(palette = "BluYl", name = "Cognitive distortion of distance",
+                                  direction = -1, 
+                                  guide = F,
+                                  limits = c(min_val, max_val),
+                                  breaks = breaks_val,
+                                  labels = glue::glue("{breaks_val} k"))+
+  guides(fill = guide_colorbar(barheight = unit(2.3, units = "mm"),  
+                               barwidth = unit(100, units = "mm"),
+                               direction = "horizontal",
+                               ticks.colour = "grey40",
+                               title.position = "left",
+                               label.position = "bottom",
+                               title.vjust = 1)) +
+
+ #hrbrthemes::theme_ipsum(base_family = "Roboto Condensed") +
+ theme(
+       text = element_text(family = "Roboto Condensed"),
+       axis.ticks = element_blank(),
+       axis.text = element_blank(),
+       panel.grid.major = element_blank(),
+       panel.grid.minor = element_blank(),
+       panel.background = element_rect(fill = "white"),
+       plot.background = element_rect(fill = "white"),
+       plot.title = element_markdown(hjust = 0.5,vjust = .5,color = "white",face = "bold",
+                                     size = 24, margin = margin(t = 1, b = 12)),
+       plot.subtitle = element_markdown(hjust = 0,vjust = 1,size=15,color = "white"),
+       plot.caption = element_markdown(face = 'bold',size = 12,hjust = 1,color = "white"),
+       legend.position = "bottom",
+       legend.title = element_text( color = "grey60", face = "bold", size = 14),
+       legend.text = element_text(color = "grey60", size = 10),
+       legend.background = element_rect(fill = "white")
+  )
+
+ggsave("../img/cmap_distance.png", map_cont, width = 10, height = 10, dpi = 500)
+
+map_cont
+```
